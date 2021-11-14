@@ -23,3 +23,15 @@ resource "aws_route53_record" "cert-validation" {
   type            = each.value.type
   zone_id         = "${var.hosted_zone_id}"
 }
+
+resource "aws_route53_record" "load-balancer-alias" {
+  zone_id = "${var.hosted_zone_id}"
+  name    = "${var.domain}"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.loadbalancer.dns_name
+    zone_id                = aws_lb.loadbalancer.zone_id
+    evaluate_target_health = true
+  }
+}
