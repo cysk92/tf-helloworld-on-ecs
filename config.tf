@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
-    bucket = "pablo-techtests"
-    key    = "kantox/ecs/terraform.tfstate"
+    bucket = ""
+    key    = ""
     region = "us-east-1"
   }
 }
