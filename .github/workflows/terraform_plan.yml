@@ -1,0 +1,62 @@
+name: Terraform Plan
+
+# Trigger when a pull request is received
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: Stage for the deployment (staging or prod).
+        required: true
+        default: 'staging'
+  push:
+    branches: [ main ]
+    paths-ignore:
+    - '**/README.md'
+    - '.gitignore'
+    - '.github/*'
+  pull_request:
+    branches: [ main ]
+    types: [ opened, ready_for_review ]
+    paths-ignore:
+    - '**/README.md'
+    - '.gitignore'
+    - '.github/*'
+  pull_request_review:
+    types: [ submitted ]
+
+jobs:
+  terraform-plan:
+    name: "Terraform Plan"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Setup - Staging Credentials"
+        if: github.event.inputs.stage == 'staging'
+        run: |
+          echo "working_directory=./staging/" >> $GITHUB_ENV
+          echo "aws_access_key_id=${{ secrets.TERRABOT_KEY_STAGING }}" >> $GITHUB_ENV
+          echo "aws_secret_access_key=${{ secrets.TERRABOT_SECRET_STAGING }}" >> $GITHUB_ENV
+
+      - name: "Setup - Production Credentials"
+        if: github.event.inputs.stage == 'prod' || github.event_name != 'workflow_dispatch'
+        run: |
+          echo "working_directory=./prod/" >> $GITHUB_ENV
+          echo "aws_access_key_id=${{ secrets.TERRABOT_KEY_PROD }}" >> $GITHUB_ENV
+          echo "aws_secret_access_key=${{ secrets.TERRABOT_SECRET_PROD }}" >> $GITHUB_ENV
+
+      # Checkout the code
+      # Marketplace: https://github.com/marketplace/actions/checkout
+      - name: "Setup - Checkout"
+        uses: actions/checkout@v2.1.0
+
+      # Downloads a specific version of Terraform CLI and adds it to PATH
+      # Marketplace: https://github.com/marketplace/actions/hashicorp-setup-terraform
+      - name: "Setup - Terraform CLI"
+        uses: hashicorp/setup-terraform@v1.2.1
+
+      - name: "Run - Terraform init & Plan"
+        uses: ./.github/actions/tfplan
+        id: plan
+        with:
+          aws_access_key: ${{ env.aws_access_key_id }}
+          aws_access_secret: ${{ env.aws_secret_access_key }}
+          working_directory: ${{ env.working_directory }}

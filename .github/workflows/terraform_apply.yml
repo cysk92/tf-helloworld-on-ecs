@@ -1,0 +1,48 @@
+name: Terraform Apply
+
+# Trigger when commits are pushed to the main branch
+on:
+  workflow_dispatch:
+    branches:
+      - main
+    inputs:
+      stage:
+        description: Stage for the deployment (staging or prod).
+        required: true
+        default: 'staging'
+
+jobs:
+  terraform-apply:
+    name: "Terraform Apply"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Setup - Staging Credentials"
+        if: github.event.inputs.stage == 'staging'
+        run: |
+          echo "working_directory=./staging/" >> $GITHUB_ENV
+          echo "aws_access_key_id=${{ secrets.TERRABOT_KEY_STAGING }}" >> $GITHUB_ENV
+          echo "aws_secret_access_key=${{ secrets.TERRABOT_SECRET_STAGING }}" >> $GITHUB_ENV
+
+      - name: "Setup - Production Credentials"
+        if: github.event.inputs.stage == 'prod'
+        run: |
+          echo "working_directory=./prod/" >> $GITHUB_ENV
+          echo "aws_access_key_id=${{ secrets.TERRABOT_KEY_PROD }}" >> $GITHUB_ENV
+          echo "aws_secret_access_key=${{ secrets.TERRABOT_SECRET_PROD }}" >> $GITHUB_ENV
+
+      # Checkout the code
+      # Marketplace: https://github.com/marketplace/actions/checkout
+      - name: "Setup - Checkout"
+        uses: actions/checkout@v2.1.0
+
+      # Downloads a specific version of Terraform CLI and adds it to PATH
+      # Marketplace: https://github.com/marketplace/actions/hashicorp-setup-terraform
+      - name: "Setup - Terraform CLI"
+        uses: hashicorp/setup-terraform@v1.2.1
+
+      - name: "Run - Terraform init & Apply"
+        uses: ./.github/actions/tfapply
+        with:
+          aws_access_key: ${{ env.aws_access_key_id }}
+          aws_access_secret: ${{ env.aws_secret_access_key }}
+          working_directory: ${{ env.working_directory }}

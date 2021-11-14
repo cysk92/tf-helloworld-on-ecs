@@ -1,0 +1,35 @@
+name: Terraform Apply
+author: pablojabase
+description: Runs Terraform apply
+
+inputs:
+  aws_access_key:
+    description: Access Key of AWS account where to deploy.
+    required: true
+  
+  aws_access_secret:
+    description: Access Secret of AWS account where to deploy.
+    required: true
+  
+  working_directory:
+    description: Directory of the module we want to run (staging or prod)
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+      - name: "Run - Terraform init"
+        run: terraform init -input=false
+        working-directory: ${{ inputs.working_directory }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ inputs.aws_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ inputs.aws_access_secret}}
+        shell: bash
+
+      - name: "Run - Terraform Apply"
+        run: terraform apply -input=false -auto-approve
+        working-directory: ${{ inputs.working_directory }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ inputs.aws_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ inputs.aws_access_secret}}
+        shell: bash
